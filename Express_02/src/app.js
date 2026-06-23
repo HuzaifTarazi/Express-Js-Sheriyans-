@@ -31,7 +31,8 @@ app.delete('/notes/:idx', (req, res) => {
 app.patch('/notes/:idx', (req, res) => {
     const idx = req.params.idx
     const description = req.body.description
-
+    const title = req.body.title
+    notes[idx].title = title
     notes[idx].description = description
 
     res.status(200).json({
