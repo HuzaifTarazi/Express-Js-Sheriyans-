@@ -1,31 +1,38 @@
 import express, { json } from "express";
 import postModel from "./models/post.model.js";
 import multer, { memoryStorage } from "multer";
-import streamifier from "streamifier"
-import cloudinary from "./config/cloudinary.js";
+import uploadToCloudinary from "./utils/uploadToCloudinary.js";
 
 const app = express();
 const upload = multer({ storage: memoryStorage() });
 
-app.post("/create-post", upload.single("imageUrl"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No image file uploaded" });
-  }
-
-  const uploadStream = cloudinary.uploader.upload_stream(
-    { folder: "Express_app" },
-    (error, result) => {
-      if (error) {
-        console.error("Cloudinary upload failed:", error);
-        return res.status(500).json({ error: "Cloudinary upload failed", details: error });
-      }
-
-      console.log(result);
-      res.status(201).json({ message: "Uploaded successfully", result });
+app.post("/create-post", upload.single("imageUrl"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        sccuess: false,
+        message: "Image is required",
+      });
     }
-  );
 
-  streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+    const result = await uploadToCloudinary(req.file.buffer);
+    console.log(result);
+
+    return res.status(201).json({
+      success: true,
+      message: "Image uploaded successfully.",
+      image: result.secure_url,
+      publicId: result.public_id,
+    });
+  } catch (err) {
+    console.error("Cloudinary Upload Failed: ", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to upload image",
+      error: err.message,
+    });
+  }
 });
 
 export default app;
